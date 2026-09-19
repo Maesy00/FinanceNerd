@@ -1,0 +1,25 @@
+{
+  "name": "Finance Nerd",
+  "short_name": "Fin. Nerd",
+  "description": "Gestion des flux financiers, biens immobiliers et épargne.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EEF3F0",
+  "theme_color": "#057A55",
+  "icons": [
+    {
+      "src": "images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

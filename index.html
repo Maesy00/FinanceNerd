@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Finance Nerd</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="images/favicon-32.png">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Finance Nerd">
+  <meta name="theme-color" content="#057A55">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="auth-gate">
+    <div class="auth-card">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round">
+          <path d="M4 20V13"/><path d="M11 20V8"/><path d="M18 20V4"/>
+        </svg>
+      </div>
+      <h1 id="auth-title">Connexion</h1>
+      <p class="auth-subtitle">Tes flux, ton épargne, synchronisés partout.</p>
+
+      <form id="auth-form">
+        <label class="field">
+          <span>Email</span>
+          <input type="email" id="auth-email" required autocomplete="email">
+        </label>
+        <label class="field">
+          <span>Mot de passe</span>
+          <input type="password" id="auth-password" required autocomplete="current-password" minlength="6">
+        </label>
+        <p id="auth-error" class="auth-error" hidden></p>
+        <p id="auth-info" class="auth-info" hidden></p>
+        <button type="submit" class="btn btn-primary btn-block" id="auth-submit-btn">Se connecter</button>
+      </form>
+
+      <p class="auth-switch">
+        <span id="auth-switch-text">Pas encore de compte ?</span>
+        <button type="button" id="auth-toggle-mode">Créer un compte</button>
+      </p>
+    </div>
+  </div>
+
+  <div class="app-shell" id="app-shell" hidden>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round">
+            <path d="M4 20V13"/><path d="M11 20V8"/><path d="M18 20V4"/>
+          </svg>
+        </div>
+        <span class="brand-word">Finance Nerd</span>
+        <button type="button" id="btn-settings" class="icon-btn topbar-btn" aria-label="Réglages">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <button type="button" id="sign-out-btn" class="icon-btn sign-out-btn" aria-label="Se déconnecter">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="view-container">
+      <!-- ================= FLUX ================= -->
+      <section id="view-flows" class="view">
+        <div class="filters-bar">
+          <select id="filter-type" aria-label="Filtrer par type">
+            <option value="all">Tous les types</option>
+            <option value="credit">Crédit</option>
+            <option value="debit_obligatoire">Débit obligatoire</option>
+            <option value="debit_facultatif">Débit facultatif</option>
+            <option value="epargne">Épargne</option>
+          </select>
+          <select id="filter-account" aria-label="Filtrer par compte"></select>
+        </div>
+        <div id="flows-summary"></div>
+        <button type="button" id="btn-new-flow" class="btn btn-primary btn-block">+ Nouveau flux</button>
+        <div id="flows-list" class="card-list"></div>
+        <p id="flows-empty" class="empty-hint hidden">Aucun flux pour ces filtres.</p>
+      </section>
+
+      <!-- ================= BIENS ================= -->
+      <section id="view-properties" class="view hidden">
+        <div class="segmented" id="property-tabs"></div>
+        <div id="property-summary"></div>
+        <div id="property-flows-list" class="card-list"></div>
+        <button type="button" id="btn-manage-properties" class="btn-tertiary">Gérer les biens</button>
+      </section>
+
+      <!-- ================= COMMUN ================= -->
+      <section id="view-commun" class="view hidden">
+        <div id="commun-content"></div>
+      </section>
+
+      <!-- ================= TRÉSORERIE ================= -->
+      <section id="view-treasury" class="view hidden">
+        <div id="treasury-content"></div>
+      </section>
+
+      <!-- ================= ÉPARGNE ================= -->
+      <section id="view-savings" class="view hidden">
+        <div class="month-nav">
+          <button type="button" id="savings-month-prev" class="calendar-nav-btn" aria-label="Mois précédent">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <span id="savings-month-label" class="section-title"></span>
+          <button type="button" id="savings-month-next" class="calendar-nav-btn" aria-label="Mois suivant">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+        <div id="savings-total-card" class="card savings-total-card"></div>
+        <div id="savings-accounts-list" class="card-list"></div>
+        <button type="button" id="btn-manage-savings" class="btn-tertiary">Gérer les supports d'épargne</button>
+        <div class="card">
+          <h2 class="section-title">Évolution du total</h2>
+          <div id="savings-chart"></div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-view="flows">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V13"/><path d="M11 20V8"/><path d="M18 20V4"/></svg>
+        <span>Flux</span>
+      </button>
+      <button class="nav-btn" data-view="properties">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-6h4v6"/></svg>
+        <span>Biens</span>
+      </button>
+      <button class="nav-btn" data-view="commun">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8.5" cy="8" r="3"/><circle cx="16" cy="9" r="2.6"/><path d="M2.5 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M13.5 14.5c2.8.3 5 2.7 5 5.5"/></svg>
+        <span>Commun</span>
+      </button>
+      <button class="nav-btn" data-view="treasury">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        <span>Trésorerie</span>
+      </button>
+      <button class="nav-btn" data-view="savings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 8v1M12 15v1"/><path d="M9.5 15c0 1 1 1.5 2.5 1.5s2.5-.6 2.5-1.7c0-2.3-5-1-5-3.3C9.5 10.3 10.5 9.5 12 9.5s2.5.5 2.5 1.5"/></svg>
+        <span>Épargne</span>
+      </button>
+    </nav>
+  </div>
+
+  <div id="modal-root"></div>
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/calc.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>
