@@ -387,6 +387,13 @@ select:focus {
   gap: 14px;
   align-items: center;
   margin-top: 18px;
+  position: sticky;
+  bottom: 0;
+  background: var(--card);
+  margin-left: -18px;
+  margin-right: -18px;
+  padding: 14px 18px max(14px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--hairline);
 }
 
 .session-actions .btn-primary {
