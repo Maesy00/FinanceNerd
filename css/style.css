@@ -824,6 +824,24 @@ select:focus {
   gap: 10px;
 }
 
+.manage-reorder {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.manage-reorder .icon-btn {
+  width: 22px;
+  height: 18px;
+  font-size: 9px;
+}
+
+.manage-reorder .icon-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
 .manage-row-input {
   flex: 1;
   min-width: 0;

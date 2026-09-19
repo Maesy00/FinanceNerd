@@ -51,7 +51,7 @@ const Storage = (() => {
   }
 
   function rowToSavingsAccount(row) {
-    return { id: row.id, name: row.name, liquidity: row.liquidity || "disponible" };
+    return { id: row.id, name: row.name, liquidity: row.liquidity || "disponible", sortOrder: row.sort_order || 0 };
   }
 
   function rowToSavingsBalance(row) {
@@ -94,7 +94,7 @@ const Storage = (() => {
     const [flowsRes, propsRes, savAccRes, savBalRes, settingsRes] = await Promise.all([
       supabaseClient.from("flows").select("*").order("created_at", { ascending: true }),
       supabaseClient.from("properties").select("*").order("name", { ascending: true }),
-      supabaseClient.from("savings_accounts").select("*").order("name", { ascending: true }),
+      supabaseClient.from("savings_accounts").select("*").order("sort_order", { ascending: true }),
       supabaseClient.from("savings_balances").select("*").order("month", { ascending: true }),
       supabaseClient.from("settings").select("*").maybeSingle(),
     ]);
@@ -169,9 +169,10 @@ const Storage = (() => {
 
   async function addSavingsAccount(name, liquidity) {
     const userId = await getUserId();
+    const maxOrder = cache.savingsAccounts.reduce((m, a) => Math.max(m, a.sortOrder || 0), 0);
     const { data, error } = await supabaseClient
       .from("savings_accounts")
-      .insert({ user_id: userId, name, liquidity: liquidity || "disponible" })
+      .insert({ user_id: userId, name, liquidity: liquidity || "disponible", sort_order: maxOrder + 1 })
       .select()
       .single();
     if (error) {
@@ -191,6 +192,16 @@ const Storage = (() => {
   async function setSavingsAccountLiquidity(id, liquidity) {
     const { error } = await supabaseClient.from("savings_accounts").update({ liquidity }).eq("id", id);
     if (error) return console.error("Erreur modification du support :", error.message);
+    await refresh();
+  }
+
+  async function setSavingsAccountOrder(id, sortOrder) {
+    const { error } = await supabaseClient.from("savings_accounts").update({ sort_order: sortOrder }).eq("id", id);
+    if (error) return console.error("Erreur réorganisation :", error.message);
+  }
+
+  async function swapSavingsAccountOrder(idA, orderA, idB, orderB) {
+    await Promise.all([setSavingsAccountOrder(idA, orderB), setSavingsAccountOrder(idB, orderA)]);
     await refresh();
   }
 
@@ -250,6 +261,7 @@ const Storage = (() => {
     addSavingsAccount,
     renameSavingsAccount,
     setSavingsAccountLiquidity,
+    swapSavingsAccountOrder,
     deleteSavingsAccount,
     upsertSavingsBalance,
     deleteSavingsBalance,

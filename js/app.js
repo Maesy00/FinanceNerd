@@ -24,6 +24,12 @@ const App = (() => {
     }[c]));
   }
 
+  // Les claviers décimaux iOS/Android en locale FR insèrent une virgule :
+  // on l'accepte partout où un montant ou un pourcentage est saisi.
+  function parseAmount(str) {
+    return parseFloat(String(str ?? "").trim().replace(",", "."));
+  }
+
   function capitalize(s) {
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
@@ -251,7 +257,7 @@ const App = (() => {
           <input type="text" id="flow-label" required value="${escapeHtml(f.label)}" placeholder="Ex. Salaire, Crédit Immobilier Ornano…">
         </label>
         <label class="field"><span>Montant (€)</span>
-          <input type="number" id="flow-amount" required step="0.01" min="0" inputmode="decimal" value="${f.amount}">
+          <input type="text" id="flow-amount" required inputmode="decimal" value="${f.amount !== "" ? Number(f.amount).toFixed(2) : ""}">
         </label>
         <label class="field"><span>Compte impacté</span>
           <select id="flow-account">${accountSelectOptionsHTML(f.accountName || ACCOUNTS[0])}</select>
@@ -288,11 +294,11 @@ const App = (() => {
           </div>
           <label class="field" id="share-percent-field" style="${isAmountMode ? "display:none" : ""}">
             <span>Ma part (%)</span>
-            <input type="number" id="flow-share-percent" step="0.1" min="0" max="100" value="${f.sharePercent ?? settings.defaultSharePercent}">
+            <input type="text" id="flow-share-percent" inputmode="decimal" value="${f.sharePercent ?? settings.defaultSharePercent}">
           </label>
           <label class="field" id="share-amount-field" style="${isAmountMode ? "" : "display:none"}">
             <span>Montant qui me revient (€)</span>
-            <input type="number" id="flow-share-amount" step="0.01" min="0" value="${f.shareAmountMine ?? ""}">
+            <input type="text" id="flow-share-amount" inputmode="decimal" value="${f.shareAmountMine !== "" && f.shareAmountMine != null ? Number(f.shareAmountMine).toFixed(2) : ""}">
           </label>
         </div>
 
@@ -346,7 +352,7 @@ const App = (() => {
       errorEl.classList.add("hidden");
 
       const label = root.querySelector("#flow-label").value.trim();
-      const amount = parseFloat(root.querySelector("#flow-amount").value);
+      const amount = parseAmount(root.querySelector("#flow-amount").value);
       if (!label || isNaN(amount) || amount < 0) {
         errorEl.textContent = "Vérifie le libellé et le montant.";
         errorEl.classList.remove("hidden");
@@ -366,8 +372,8 @@ const App = (() => {
         propertyId: root.querySelector("#flow-property").value || null,
         shared,
         shareMode,
-        sharePercent: shared && shareMode === "percentage" ? Calc.round2(parseFloat(root.querySelector("#flow-share-percent").value) || 0) : null,
-        shareAmountMine: shared && shareMode === "amount" ? Calc.round2(parseFloat(root.querySelector("#flow-share-amount").value) || 0) : null,
+        sharePercent: shared && shareMode === "percentage" ? Calc.round2(parseAmount(root.querySelector("#flow-share-percent").value) || 0) : null,
+        shareAmountMine: shared && shareMode === "amount" ? Calc.round2(parseAmount(root.querySelector("#flow-share-amount").value) || 0) : null,
       };
 
       if (flow) {
@@ -588,7 +594,7 @@ const App = (() => {
         </div>
         <label class="field savings-balance-field">
           <span>Solde — ${capitalize(monthLabel(savingsMonth))}</span>
-          <input type="number" step="0.01" class="savings-balance-input" data-account-id="${acc.id}" value="${bal ? bal.balance : ""}" placeholder="0,00">
+          <input type="text" inputmode="decimal" class="savings-balance-input" data-account-id="${acc.id}" value="${bal ? bal.balance.toFixed(2) : ""}" placeholder="0,00">
         </label>
       </div>`;
   }
@@ -604,10 +610,10 @@ const App = (() => {
 
   function renderSavingsView() {
     document.getElementById("savings-month-label").textContent = capitalize(monthLabel(savingsMonth));
-    const byName = (a, b) => a.name.localeCompare(b.name);
+    const byOrder = (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0);
     const allAccounts = Storage.getSavingsAccounts();
-    const disponibleAccounts = allAccounts.filter((a) => a.liquidity === "disponible").sort(byName);
-    const bloqueeAccounts = allAccounts.filter((a) => a.liquidity === "bloquee").sort(byName);
+    const disponibleAccounts = allAccounts.filter((a) => a.liquidity === "disponible").sort(byOrder);
+    const bloqueeAccounts = allAccounts.filter((a) => a.liquidity === "bloquee").sort(byOrder);
     const accounts = [...disponibleAccounts, ...bloqueeAccounts];
     const listEl = document.getElementById("savings-accounts-list");
 
@@ -674,13 +680,20 @@ const App = (() => {
 
   function manageListModalHTML(config, items) {
     const withLiquidity = !!config.withLiquidity;
+    const withReorder = !!config.withReorder;
     return `
       <h3 class="modal-title">${config.title}</h3>
       <div class="manage-list">
         ${items
           .map(
-            (it) => `
+            (it, idx) => `
           <div class="manage-row" data-id="${it.id}">
+            ${withReorder
+              ? `<div class="manage-reorder">
+                  <button type="button" class="icon-btn" data-action="move-up" ${idx === 0 ? "disabled" : ""} aria-label="Monter">▲</button>
+                  <button type="button" class="icon-btn" data-action="move-down" ${idx === items.length - 1 ? "disabled" : ""} aria-label="Descendre">▼</button>
+                </div>`
+              : ""}
             <input type="text" class="manage-row-input" value="${escapeHtml(it.name)}">
             ${withLiquidity ? `<select class="manage-row-liquidity">${liquiditySelectOptionsHTML(it.liquidity)}</select>` : ""}
             <button type="button" class="icon-btn" data-action="delete-item" aria-label="Supprimer">🗑</button>
@@ -716,6 +729,19 @@ const App = (() => {
           const ok = await confirmDialog("Supprimer cet élément ? Les flux déjà associés resteront mais ne seront plus rattachés.");
           if (ok) {
             await config.onDelete(row.dataset.id);
+            render();
+            config.afterChange();
+          }
+          return;
+        }
+        const moveBtn = e.target.closest('[data-action="move-up"], [data-action="move-down"]');
+        if (moveBtn && !moveBtn.disabled) {
+          const items = config.getItems();
+          const row = moveBtn.closest(".manage-row");
+          const idx = items.findIndex((it) => it.id === row.dataset.id);
+          const targetIdx = moveBtn.dataset.action === "move-up" ? idx - 1 : idx + 1;
+          if (idx !== -1 && targetIdx >= 0 && targetIdx < items.length) {
+            await config.onReorder(items[idx], items[targetIdx]);
             render();
             config.afterChange();
           }
@@ -773,9 +799,11 @@ const App = (() => {
       getItems: () => Storage.getSavingsAccounts(),
       addPlaceholder: "Ex. Livret A",
       withLiquidity: true,
+      withReorder: true,
       onAdd: (name, liquidity) => Storage.addSavingsAccount(name, liquidity),
       onRename: (id, name) => Storage.renameSavingsAccount(id, name),
       onLiquidityChange: (id, liquidity) => Storage.setSavingsAccountLiquidity(id, liquidity),
+      onReorder: (itemA, itemB) => Storage.swapSavingsAccountOrder(itemA.id, itemA.sortOrder, itemB.id, itemB.sortOrder),
       onDelete: (id) => Storage.deleteSavingsAccount(id),
       afterChange: () => renderSavingsView(),
     });
@@ -792,7 +820,7 @@ const App = (() => {
       <form id="settings-form">
         <label class="field">
           <span>Répartition par défaut avec Jérôme — ma part (%)</span>
-          <input type="number" id="settings-default-percent" step="0.1" min="0" max="100" value="${settings.defaultSharePercent}">
+          <input type="text" id="settings-default-percent" inputmode="decimal" value="${settings.defaultSharePercent}">
         </label>
         <p class="field-hint">S'applique par défaut aux nouveaux flux partagés ; ajustable flux par flux.</p>
         <div class="session-actions">
@@ -807,7 +835,7 @@ const App = (() => {
     };
     root.querySelector("#settings-form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const val = Calc.round2(parseFloat(root.querySelector("#settings-default-percent").value) || 50);
+      const val = Calc.round2(parseAmount(root.querySelector("#settings-default-percent").value) || 50);
       await Storage.updateSettings({ defaultSharePercent: val });
       closeModal();
       renderAll();
@@ -862,7 +890,7 @@ const App = (() => {
     if (!e.target.classList.contains("savings-balance-input")) return;
     const raw = e.target.value;
     if (raw === "") return;
-    const value = parseFloat(raw);
+    const value = parseAmount(raw);
     if (isNaN(value)) return;
     await Storage.upsertSavingsBalance(e.target.dataset.accountId, savingsMonth, Calc.round2(value));
     renderSavingsView();

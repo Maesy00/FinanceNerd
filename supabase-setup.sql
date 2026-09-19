@@ -19,6 +19,7 @@ create table if not exists savings_accounts (
   user_id uuid not null references auth.users(id) on delete cascade,
   name text not null,
   liquidity text not null default 'disponible' check (liquidity in ('disponible', 'bloquee')),
+  sort_order integer not null default 0,
   created_at timestamptz not null default now()
 );
 
