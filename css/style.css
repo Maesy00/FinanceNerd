@@ -822,24 +822,26 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 10px;
+  background: var(--card);
+  position: relative;
 }
 
-.manage-reorder {
+.manage-row.dragging {
+  z-index: 5;
+  box-shadow: var(--shadow);
+  border-radius: var(--radius-sm);
+}
+
+.manage-row-handle {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-}
-
-.manage-reorder .icon-btn {
-  width: 22px;
-  height: 18px;
-  font-size: 9px;
-}
-
-.manage-reorder .icon-btn:disabled {
-  opacity: 0.25;
-  cursor: default;
+  width: 28px;
+  height: 36px;
+  color: var(--muted-light);
+  touch-action: none;
+  cursor: grab;
 }
 
 .manage-row-input {

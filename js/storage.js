@@ -195,13 +195,12 @@ const Storage = (() => {
     await refresh();
   }
 
-  async function setSavingsAccountOrder(id, sortOrder) {
-    const { error } = await supabaseClient.from("savings_accounts").update({ sort_order: sortOrder }).eq("id", id);
-    if (error) return console.error("Erreur réorganisation :", error.message);
-  }
-
-  async function swapSavingsAccountOrder(idA, orderA, idB, orderB) {
-    await Promise.all([setSavingsAccountOrder(idA, orderB), setSavingsAccountOrder(idB, orderA)]);
+  async function reorderSavingsAccounts(orderedIds) {
+    const results = await Promise.all(
+      orderedIds.map((id, idx) => supabaseClient.from("savings_accounts").update({ sort_order: idx }).eq("id", id))
+    );
+    const err = results.find((r) => r.error);
+    if (err) console.error("Erreur réorganisation :", err.error.message);
     await refresh();
   }
 
@@ -261,7 +260,7 @@ const Storage = (() => {
     addSavingsAccount,
     renameSavingsAccount,
     setSavingsAccountLiquidity,
-    swapSavingsAccountOrder,
+    reorderSavingsAccounts,
     deleteSavingsAccount,
     upsertSavingsBalance,
     deleteSavingsBalance,

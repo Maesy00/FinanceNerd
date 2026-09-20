@@ -678,6 +678,8 @@ const App = (() => {
     `;
   }
 
+  const DRAG_HANDLE_SVG = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>`;
+
   function manageListModalHTML(config, items) {
     const withLiquidity = !!config.withLiquidity;
     const withReorder = !!config.withReorder;
@@ -686,14 +688,9 @@ const App = (() => {
       <div class="manage-list">
         ${items
           .map(
-            (it, idx) => `
+            (it) => `
           <div class="manage-row" data-id="${it.id}">
-            ${withReorder
-              ? `<div class="manage-reorder">
-                  <button type="button" class="icon-btn" data-action="move-up" ${idx === 0 ? "disabled" : ""} aria-label="Monter">▲</button>
-                  <button type="button" class="icon-btn" data-action="move-down" ${idx === items.length - 1 ? "disabled" : ""} aria-label="Descendre">▼</button>
-                </div>`
-              : ""}
+            ${withReorder ? `<div class="manage-row-handle" aria-label="Glisser pour réordonner">${DRAG_HANDLE_SVG}</div>` : ""}
             <input type="text" class="manage-row-input" value="${escapeHtml(it.name)}">
             ${withLiquidity ? `<select class="manage-row-liquidity">${liquiditySelectOptionsHTML(it.liquidity)}</select>` : ""}
             <button type="button" class="icon-btn" data-action="delete-item" aria-label="Supprimer">🗑</button>
@@ -732,19 +729,6 @@ const App = (() => {
             render();
             config.afterChange();
           }
-          return;
-        }
-        const moveBtn = e.target.closest('[data-action="move-up"], [data-action="move-down"]');
-        if (moveBtn && !moveBtn.disabled) {
-          const items = config.getItems();
-          const row = moveBtn.closest(".manage-row");
-          const idx = items.findIndex((it) => it.id === row.dataset.id);
-          const targetIdx = moveBtn.dataset.action === "move-up" ? idx - 1 : idx + 1;
-          if (idx !== -1 && targetIdx >= 0 && targetIdx < items.length) {
-            await config.onReorder(items[idx], items[targetIdx]);
-            render();
-            config.afterChange();
-          }
         }
       };
       root.querySelectorAll(".manage-row-input").forEach((input) => {
@@ -764,6 +748,60 @@ const App = (() => {
           config.afterChange();
         });
       });
+      if (config.withReorder) {
+        const listEl = root.querySelector(".manage-list");
+        listEl.querySelectorAll(".manage-row-handle").forEach((handle) => {
+          handle.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+            const draggedEl = handle.closest(".manage-row");
+            handle.setPointerCapture(e.pointerId);
+            let startY = e.clientY;
+            draggedEl.classList.add("dragging");
+
+            const onMove = (ev) => {
+              const deltaY = ev.clientY - startY;
+              draggedEl.style.transform = `translateY(${deltaY}px)`;
+
+              const draggedRect = draggedEl.getBoundingClientRect();
+              const draggedCenter = draggedRect.top + draggedRect.height / 2;
+
+              const prev = draggedEl.previousElementSibling;
+              if (prev && prev.classList.contains("manage-row")) {
+                const rect = prev.getBoundingClientRect();
+                if (draggedCenter < rect.top + rect.height / 2) {
+                  listEl.insertBefore(draggedEl, prev);
+                  startY = ev.clientY;
+                  draggedEl.style.transform = "translateY(0)";
+                  return;
+                }
+              }
+              const next = draggedEl.nextElementSibling;
+              if (next && next.classList.contains("manage-row")) {
+                const rect = next.getBoundingClientRect();
+                if (draggedCenter > rect.top + rect.height / 2) {
+                  listEl.insertBefore(next, draggedEl);
+                  startY = ev.clientY;
+                  draggedEl.style.transform = "translateY(0)";
+                }
+              }
+            };
+
+            const onUp = async (ev) => {
+              handle.releasePointerCapture(ev.pointerId);
+              draggedEl.classList.remove("dragging");
+              draggedEl.style.transform = "";
+              document.removeEventListener("pointermove", onMove);
+              document.removeEventListener("pointerup", onUp);
+              const orderedIds = [...listEl.querySelectorAll(".manage-row")].map((r) => r.dataset.id);
+              await config.onReorder(orderedIds);
+              config.afterChange();
+            };
+
+            document.addEventListener("pointermove", onMove);
+            document.addEventListener("pointerup", onUp);
+          });
+        });
+      }
       root.querySelector("#manage-add-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const input = root.querySelector("#manage-add-input");
@@ -803,7 +841,7 @@ const App = (() => {
       onAdd: (name, liquidity) => Storage.addSavingsAccount(name, liquidity),
       onRename: (id, name) => Storage.renameSavingsAccount(id, name),
       onLiquidityChange: (id, liquidity) => Storage.setSavingsAccountLiquidity(id, liquidity),
-      onReorder: (itemA, itemB) => Storage.swapSavingsAccountOrder(itemA.id, itemA.sortOrder, itemB.id, itemB.sortOrder),
+      onReorder: (orderedIds) => Storage.reorderSavingsAccounts(orderedIds),
       onDelete: (id) => Storage.deleteSavingsAccount(id),
       afterChange: () => renderSavingsView(),
     });
